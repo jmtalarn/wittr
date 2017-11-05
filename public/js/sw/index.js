@@ -1,4 +1,4 @@
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
   var urlsToCache = [
     '/',
     'js/main.js',
@@ -11,13 +11,25 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     // TODO: open a cache named 'wittr-static-v1'
     // Add cache the urls from urlsToCache
-    caches.open('wittr-static-v1').then(function(cache){
+    caches.open('wittr-static-v1').then(function (cache) {
       return cache.addAll(urlsToCache);
     })
   );
 });
 
-self.addEventListener('fetch', function(event) {
-  // Leave this blank for now.
-  // We'll get to this in the next task.
+self.addEventListener('fetch', function (event) {
+  event.waitUntil(
+    event.respondWith(
+      caches.open('wittr-static-v1').then(function (cache) {
+        return cache.match(event.request.url)
+          .then(function (data) {
+            if (data!=undefined) {
+              return data;
+            } else {
+              return fetch(event.request.url)
+            }
+          })
+      })
+    )
+  )
 });
