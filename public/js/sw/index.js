@@ -35,16 +35,20 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   // TODO: respond to requests for the root page with
   // the page skeleton from the cache
-  if ((event.request.url=="http://localhost:8888/")) {
-    event.respondWith(caches.match('/skeleton').then(function (response) {
-      return response}));
-  } else {
+  var requestURL = new URL(event.request.url);
+
+  if (requestURL.origin === location.origin){
+    if (requestUrl.pathname==="/"){
+      event.respondWith(caches.match('/skeleton'));
+      return;
+    }
+  }
     event.respondWith(
       caches.match(event.request).then(function (response) {
         return response || fetch(event.request);
       })
     );
-  }
+  
 });
 
 self.addEventListener('message', function (event) {
