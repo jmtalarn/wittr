@@ -1,13 +1,13 @@
-var staticCacheName = 'wittr-static-v7';
+var staticCacheName = 'wittr-static-v1';
 var contentImgsCache = 'wittr-content-imgs';
 var allCaches = [
   staticCacheName,
   contentImgsCache
 ];
 
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
   event.waitUntil(
-    caches.open(staticCacheName).then(function(cache) {
+    caches.open(staticCacheName).then(function (cache) {
       return cache.addAll([
         '/skeleton',
         'js/main.js',
@@ -20,14 +20,14 @@ self.addEventListener('install', function(event) {
   );
 });
 
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', function (event) {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(function (cacheNames) {
       return Promise.all(
-        cacheNames.filter(function(cacheName) {
+        cacheNames.filter(function (cacheName) {
           return cacheName.startsWith('wittr-') &&
-                 !allCaches.includes(cacheName);
-        }).map(function(cacheName) {
+            !allCaches.includes(cacheName);
+        }).map(function (cacheName) {
           return caches.delete(cacheName);
         })
       );
@@ -35,7 +35,7 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-self.addEventListener('fetch', function(event) {
+self.addEventListener('fetch', function (event) {
   var requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin === location.origin) {
@@ -44,13 +44,14 @@ self.addEventListener('fetch', function(event) {
       return;
     }
     if (requestUrl.pathname.startsWith('/photos/')) {
-      event.respondWith(servePhoto(event.request));
+      var athing = servePhoto(event.request);
+      event.respondWith(athing);
       return;
     }
   }
 
   event.respondWith(
-    caches.match(event.request).then(function(response) {
+    caches.match(event.request).then(function (response) {
       return response || fetch(event.request);
     })
   );
@@ -63,16 +64,22 @@ function servePhoto(request) {
   // Use this url to store & match the image in the cache.
   // This means you only store one copy of each photo.
   var storageUrl = request.url.replace(/-\d+px\.jpg$/, '');
-
   // TODO: return images from the "wittr-content-imgs" cache
   // if they're in there. Otherwise, fetch the images from
   // the network, put them into the cache, and send it back
   // to the browser.
   //
   // HINT: cache.put supports a plain url as the first parameter
+  return caches.match(storageUrl).then(function (response) {
+        return response || (fetch(request).then(function (res) {
+          caches.open(contentImgsCache).then(function (cache) {
+            cache.put(storageUrl, res.clone()) });
+            return res.clone();
+        }) );
+  });
 }
 
-self.addEventListener('message', function(event) {
+self.addEventListener('message', function (event) {
   if (event.data.action === 'skipWaiting') {
     self.skipWaiting();
   }
