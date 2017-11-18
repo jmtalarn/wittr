@@ -70,12 +70,14 @@ function servePhoto(request) {
   // to the browser.
   //
   // HINT: cache.put supports a plain url as the first parameter
-  return caches.match(storageUrl).then(function (response) {
-        return response || (fetch(request).then(function (res) {
-          caches.open(contentImgsCache).then(function (cache) {
-            cache.put(storageUrl, res.clone()) });
-            return res.clone();
-        }) );
+  return caches.open(contentImgsCache).then(function(cache){
+    return cache.match(storageUrl).then(function(response){
+      if (response) return response;
+
+      return fetch(request).then(function(networkResponse){
+        cache.put(storageUrl, networkResponse.clone());
+      });
+    });
   });
 }
 
