@@ -72,17 +72,12 @@ function serveAvatar(request) {
 
   return caches.open(contentImgsCache).then(function (cache) {
     return cache.match(storageUrl).then(function (response) {
-      if (response) {
-        fetch(request)
-          .then(function (networkResponse) {
-            cache.put(storageUrl, networkResponse);
-          });
-        return response;
-      }
-      return fetch(request).then(function (networkResponse) {
+      var networkFetch = fetch(request).then(function(networkResponse){
         cache.put(storageUrl, networkResponse.clone());
         return networkResponse;
       });
+      return response || networkFetch;
+      
     });
   });
   // TODO: return images from the "wittr-content-imgs" cache
