@@ -5,9 +5,9 @@ var allCaches = [
   contentImgsCache
 ];
 
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
   event.waitUntil(
-    caches.open(staticCacheName).then(function(cache) {
+    caches.open(staticCacheName).then(function (cache) {
       return cache.addAll([
         '/skeleton',
         'js/main.js',
@@ -20,14 +20,14 @@ self.addEventListener('install', function(event) {
   );
 });
 
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', function (event) {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(function (cacheNames) {
       return Promise.all(
-        cacheNames.filter(function(cacheName) {
+        cacheNames.filter(function (cacheName) {
           return cacheName.startsWith('wittr-') &&
-                 !allCaches.includes(cacheName);
-        }).map(function(cacheName) {
+            !allCaches.includes(cacheName);
+        }).map(function (cacheName) {
           return caches.delete(cacheName);
         })
       );
@@ -35,7 +35,7 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-self.addEventListener('fetch', function(event) {
+self.addEventListener('fetch', function (event) {
   var requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin === location.origin) {
@@ -49,10 +49,14 @@ self.addEventListener('fetch', function(event) {
     }
     // TODO: respond to avatar urls by responding with
     // the return value of serveAvatar(event.request)
+    if (requestUrl.pathname.startsWith('/avatars/')) {
+      event.respondWith(serveAvatar(event.request));
+      return;
+    }
   }
 
   event.respondWith(
-    caches.match(event.request).then(function(response) {
+    caches.match(event.request).then(function (response) {
       return response || fetch(event.request);
     })
   );
@@ -66,6 +70,21 @@ function serveAvatar(request) {
   // This means you only store one copy of each avatar.
   var storageUrl = request.url.replace(/-\dx\.jpg$/, '');
 
+  return caches.open(contentImgsCache).then(function (cache) {
+    return cache.match(storageUrl).then(function (response) {
+      if (response) {
+        fetch(request)
+          .then(function (networkResponse) {
+            cache.put(storageUrl, networkResponse);
+          });
+        return response;
+      }
+      return fetch(request).then(function (networkResponse) {
+        cache.put(storageUrl, networkResponse.clone());
+        return networkResponse;
+      });
+    });
+  });
   // TODO: return images from the "wittr-content-imgs" cache
   // if they're in there. But afterwards, go to the network
   // to update the entry in the cache.
@@ -76,11 +95,11 @@ function serveAvatar(request) {
 function servePhoto(request) {
   var storageUrl = request.url.replace(/-\d+px\.jpg$/, '');
 
-  return caches.open(contentImgsCache).then(function(cache) {
-    return cache.match(storageUrl).then(function(response) {
+  return caches.open(contentImgsCache).then(function (cache) {
+    return cache.match(storageUrl).then(function (response) {
       if (response) return response;
 
-      return fetch(request).then(function(networkResponse) {
+      return fetch(request).then(function (networkResponse) {
         cache.put(storageUrl, networkResponse.clone());
         return networkResponse;
       });
@@ -88,7 +107,7 @@ function servePhoto(request) {
   });
 }
 
-self.addEventListener('message', function(event) {
+self.addEventListener('message', function (event) {
   if (event.data.action === 'skipWaiting') {
     self.skipWaiting();
   }
